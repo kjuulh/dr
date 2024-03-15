@@ -6,18 +6,32 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type AppOptions func(*App)
+
+func WithPage(page string) AppOptions {
+	return func(a *App) {
+		a.currentPage = page
+	}
+}
+
 type App struct {
 	pages       map[string]Page
 	currentPage string
 }
 
-func NewApp() *App {
-	return &App{
+func NewApp(opts ...AppOptions) *App {
+	app := &App{
 		pages: map[string]Page{
-			"pull_request_table": pages.NewPullRequestTable(),
+			pages.PullRequestTablePage: pages.NewPullRequestTable(),
 		},
-		currentPage: "pull_request_table",
+		currentPage: pages.PullRequestTablePage,
 	}
+
+	for _, opt := range opts {
+		opt(app)
+	}
+
+	return app
 }
 
 func (a *App) Init() tea.Cmd {

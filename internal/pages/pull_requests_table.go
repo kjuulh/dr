@@ -10,6 +10,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+const PullRequestTablePage = "pull_request_page"
+
 var (
 	docStyle = lipgloss.NewStyle().Margin(1, 2)
 )
