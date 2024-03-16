@@ -7,6 +7,7 @@ type GitHubPullRequest struct {
 	Description  string
 	Comments     []string
 	StatusChecks []string
+	Diff         string
 }
 
 func newBogusPr() GitHubPullRequest {
@@ -23,6 +24,7 @@ func newBogusPr() GitHubPullRequest {
 			"some status check" + uuid,
 			"some status check" + uuid,
 		},
+		Diff: "some diff" + uuid,
 	}
 }
 

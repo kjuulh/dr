@@ -95,7 +95,7 @@ func (p *PullRequestReview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 var (
 	contentBox = lipgloss.NewStyle()
 
-	borderBox = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).PaddingLeft(1)
+	borderBox = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).PaddingLeft(1)
 
 	titleBox = contentBox.Copy().Bold(true)
 )
@@ -111,6 +111,7 @@ func (p *PullRequestReview) View() string {
 		description := pr.Description
 		comments := strings.Join(pr.Comments, "\n\n")
 		statusChecks := strings.Join(pr.StatusChecks, "\n\n")
+		diff := pr.Diff
 
 		title = titleBox.Width(p.width-1).Render(title) + "\n"
 		titleHeight := lipgloss.Height(title)
@@ -121,22 +122,37 @@ func (p *PullRequestReview) View() string {
 			p.width/2, lipgloss.Left,
 			borderBox.
 				Copy().
-				Width(p.width/2-2).
+				Width(p.width/2).
 				Height(remainingHeight-2).
 				Render(description),
 		)
+		rightTop := lipgloss.PlaceVertical(
+			remainingHeight/2, lipgloss.Top,
+			contentBox.Copy().Width(p.width/2-2).Render(
+				lipgloss.JoinVertical(
+					lipgloss.Top,
+					borderBox.
+						Copy().
+						Width(p.width/2-4).
+						Render(comments),
+					borderBox.
+						Copy().
+						Width(p.width/2-4).
+						Render(statusChecks)),
+			),
+		)
+		rightBottom := lipgloss.PlaceVertical(
+			remainingHeight/2, lipgloss.Top,
+			borderBox.
+				Copy().
+				Width(p.width/2-4).
+				Height(remainingHeight/2-1).
+				Render(diff),
+		)
 		right := lipgloss.PlaceHorizontal(
-			p.width/2, lipgloss.Left,
-			lipgloss.JoinVertical(
-				lipgloss.Top,
-				borderBox.
-					Copy().
-					Width(p.width/2).
-					Render(comments),
-				borderBox.
-					Copy().
-					Width(p.width/2).
-					Render(statusChecks)),
+			p.width/2-2, lipgloss.Left,
+			lipgloss.JoinVertical(lipgloss.Top,
+				rightTop, rightBottom),
 		)
 
 		content := lipgloss.JoinHorizontal(lipgloss.Left, left, right)
