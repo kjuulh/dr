@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"shuttle-extensions-template/internal/pages"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -45,6 +46,13 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if k == "q" || k == "esc" || k == "ctrl+c" {
 			return a, tea.Quit
 		}
+	case pages.ChangePage:
+		page := msg.Page()
+		_, ok := a.pages[page]
+		if !ok {
+			panic(fmt.Errorf("error: page was not found: %s", page))
+		}
+		a.currentPage = page
 	}
 
 	cmds := make([]tea.Cmd, 0)

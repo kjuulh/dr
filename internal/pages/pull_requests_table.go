@@ -1,8 +1,6 @@
 package pages
 
 import (
-	"log"
-
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -89,8 +87,7 @@ func (p *PullRequestTable) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, p.keyMap.Begin):
-			log.Println("should move to begin pr list")
-			return p, nil
+			return p, NewChangePage(PullRequestTablePage)
 		case key.Matches(msg, p.keyMap.Help):
 			p.help.ShowAll = !p.help.ShowAll
 		case key.Matches(msg, p.keyMap.Quit):
