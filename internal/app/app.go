@@ -23,7 +23,8 @@ type App struct {
 func NewApp(opts ...AppOptions) *App {
 	app := &App{
 		pages: map[string]Page{
-			pages.PullRequestTablePage: pages.NewPullRequestTable(),
+			pages.PullRequestTablePage:  pages.NewPullRequestTable(),
+			pages.PullRequestReviewPage: pages.NewPullRequestReview(),
 		},
 		currentPage: pages.PullRequestTablePage,
 	}

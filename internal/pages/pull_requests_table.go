@@ -87,7 +87,7 @@ func (p *PullRequestTable) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, p.keyMap.Begin):
-			return p, NewChangePage(PullRequestTablePage)
+			return p, NewChangePage(PullRequestReviewPage)
 		case key.Matches(msg, p.keyMap.Help):
 			p.help.ShowAll = !p.help.ShowAll
 		case key.Matches(msg, p.keyMap.Quit):
@@ -105,7 +105,6 @@ func (p *PullRequestTable) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (p *PullRequestTable) View() string {
-
 	help := p.help.View(p.keyMap)
 	helpHeight := lipgloss.Height(help)
 
