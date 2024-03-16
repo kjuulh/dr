@@ -5,6 +5,11 @@ import (
 	"shuttle-extensions-template/internal/pages"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+)
+
+var (
+	docStyle = lipgloss.NewStyle().Margin(1, 2)
 )
 
 type AppOptions func(*App)
@@ -18,6 +23,8 @@ func WithPage(page string) AppOptions {
 type App struct {
 	pages       map[string]Page
 	currentPage string
+
+	width, height int
 }
 
 func NewApp(opts ...AppOptions) *App {
@@ -41,6 +48,8 @@ func (a *App) Init() tea.Cmd {
 }
 
 func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 0)
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		k := msg.String()
@@ -54,13 +63,17 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			panic(fmt.Errorf("error: page was not found: %s", page))
 		}
 		a.currentPage = page
-	}
 
-	cmds := make([]tea.Cmd, 0)
+		cmds = append(cmds, a.pages[page].Init())
+		a.pages[page].SetSize(a.width, a.height)
+	case tea.WindowSizeMsg:
+		h, v := docStyle.GetFrameSize()
+		a.SetSize(msg.Width-h, msg.Height-v)
+	}
 
 	if a.pages[a.currentPage] != nil {
 		newPage, newCmd := a.pages[a.currentPage].Update(msg)
-		a.pages[a.currentPage] = newPage
+		a.pages[a.currentPage] = newPage.(Page)
 		cmds = append(cmds, newCmd)
 	}
 
@@ -71,8 +84,14 @@ func (a *App) View() string {
 	return a.pages[a.currentPage].View()
 }
 
+func (a *App) SetSize(width, height int) {
+	a.width = width
+	a.height = height
+}
+
 var _ tea.Model = &App{}
 
 type Page interface {
 	tea.Model
+	SetSize(width, height int)
 }

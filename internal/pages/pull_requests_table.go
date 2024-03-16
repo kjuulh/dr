@@ -76,6 +76,8 @@ type PullRequestTable struct {
 	list   list.Model
 	keyMap tableKeyMap
 	help   help.Model
+
+	width, height int
 }
 
 func (p *PullRequestTable) Init() tea.Cmd {
@@ -141,4 +143,9 @@ func NewPullRequestTable() *PullRequestTable {
 		keyMap: newTableKeyMap(),
 		help:   help.New(),
 	}
+}
+
+func (p *PullRequestTable) SetSize(width, height int) {
+	p.width = width
+	p.height = height
 }

@@ -1,9 +1,13 @@
 package pages
 
 import (
+	"shuttle-extensions-template/internal/services"
+	"strings"
+
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 const PullRequestReviewPage = "pull_request_review"
@@ -38,27 +42,123 @@ func newReviewKeyMap() reviewKeyMap {
 type PullRequestReview struct {
 	keyMap reviewKeyMap
 	help   help.Model
+
+	githubPrService *services.GitHubPullRequestService
+
+	width, height int
+	currentPr     *services.GitHubPullRequest
 }
 
 func NewPullRequestReview() *PullRequestReview {
 	return &PullRequestReview{
 		keyMap: newReviewKeyMap(),
 		help:   help.New(),
+
+		githubPrService: services.NewGitHubPullRequestService(),
+
+		currentPr: nil,
 	}
 }
 
 func (p *PullRequestReview) Init() tea.Cmd {
+	if p.currentPr == nil {
+		pr, ok := p.githubPrService.GetNext()
+		if ok {
+			p.currentPr = pr
+		}
+	}
+
 	return nil
 }
 
-func (p *PullRequestReview) Update(tea.Msg) (tea.Model, tea.Cmd) {
+func (p *PullRequestReview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, p.keyMap.Skip):
+			pr, ok := p.githubPrService.GetNext()
+			if ok {
+				p.currentPr = pr
+			}
+
+			return p, nil
+		}
+	case tea.WindowSizeMsg:
+		h, v := docStyle.GetFrameSize()
+		p.SetSize(msg.Width-h, msg.Height-v)
+
+	}
+
 	return p, nil
 }
 
+var (
+	contentBox = lipgloss.NewStyle()
+
+	borderBox = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).PaddingLeft(1)
+
+	titleBox = contentBox.Copy().Bold(true)
+)
+
 func (p *PullRequestReview) View() string {
+	var body string
+	help := p.help.View(p.keyMap)
+	helpHeight := lipgloss.Height(help)
+
+	if p.currentPr != nil {
+		pr := p.currentPr
+		title := pr.Title
+		description := pr.Description
+		comments := strings.Join(pr.Comments, "\n\n")
+		statusChecks := strings.Join(pr.StatusChecks, "\n\n")
+
+		title = titleBox.Width(p.width-1).Render(title) + "\n"
+		titleHeight := lipgloss.Height(title)
+
+		remainingHeight := p.height - (titleHeight + helpHeight)
+
+		left := lipgloss.PlaceHorizontal(
+			p.width/2, lipgloss.Left,
+			borderBox.
+				Copy().
+				Width(p.width/2-2).
+				Height(remainingHeight-2).
+				Render(description),
+		)
+		right := lipgloss.PlaceHorizontal(
+			p.width/2, lipgloss.Left,
+			lipgloss.JoinVertical(
+				lipgloss.Top,
+				borderBox.
+					Copy().
+					Width(p.width/2).
+					Render(comments),
+				borderBox.
+					Copy().
+					Width(p.width/2).
+					Render(statusChecks)),
+		)
+
+		content := lipgloss.JoinHorizontal(lipgloss.Left, left, right)
+		//contentHeight := lipgloss.Height(content)
+
+		body = lipgloss.JoinVertical(lipgloss.Top, title, contentBox.Copy().Height(remainingHeight).Render(content))
+	} else {
+		body = "loading..."
+	}
+
 	return docStyle.Render(
-		p.help.View(p.keyMap),
+		lipgloss.JoinVertical(
+			0,
+			body,
+			help,
+		),
 	)
+}
+
+func (p *PullRequestReview) SetSize(width, height int) {
+	p.width = width
+	p.height = height
 }
 
 var _ tea.Model = &PullRequestReview{}
