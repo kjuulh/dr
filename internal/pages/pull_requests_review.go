@@ -3,6 +3,7 @@ package pages
 import (
 	"bytes"
 	"shuttle-extensions-template/internal/services"
+	"shuttle-extensions-template/internal/utility"
 	"strings"
 
 	"github.com/alecthomas/chroma/quick"
@@ -233,7 +234,6 @@ func (p *PullRequestReview) View() string {
 
 	if p.currentPr != nil {
 		pr := p.currentPr
-
 		title, _ := p.renderTitle()
 
 		comments := strings.Join(pr.Comments, "\n\n")
@@ -293,13 +293,22 @@ func (p *PullRequestReview) View() string {
 		body = "loading..."
 	}
 
-	return docStyle.Render(
+	notificationBox := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Width(30).Render("something\nsomething\nsomething")
+
+	content := docStyle.Render(
 		lipgloss.JoinVertical(
 			0,
 			body,
 			help,
 		),
 	)
+	content = utility.PlaceOverlay(
+		p.width-30, p.height,
+		notificationBox, content,
+		false,
+	)
+
+	return content
 }
 
 func (p *PullRequestReview) SetSize(width, height int) {
