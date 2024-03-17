@@ -44,15 +44,17 @@ func newReviewKeyMap() reviewKeyMap {
 }
 
 type PullRequestReview struct {
-	keyMap   reviewKeyMap
-	help     help.Model
-	viewPort viewport.Model
+	keyMap      reviewKeyMap
+	help        help.Model
+	diff        viewport.Model
+	description viewport.Model
 
 	githubPrService *services.GitHubPullRequestService
 
 	ready         bool
 	width, height int
 	currentPr     *services.GitHubPullRequest
+	focus         int
 }
 
 func NewPullRequestReview() *PullRequestReview {
@@ -63,6 +65,7 @@ func NewPullRequestReview() *PullRequestReview {
 		githubPrService: services.NewGitHubPullRequestService(),
 
 		currentPr: nil,
+		focus:     0,
 	}
 }
 
@@ -101,15 +104,26 @@ func (p *PullRequestReview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if err != nil {
 			panic(err)
 		}
+		height := p.getContentHeight()
 
-		diffStrings := strings.Split(bytes.String(), "\n")
-		renderedDiffStrings := make([]string, 0, len(diffStrings))
-		for _, diffString := range diffStrings {
-			renderedDiffStrings = append(renderedDiffStrings, "\033[0m"+diffString+"\033[0m")
+		p.diff = p.createViewPort(bytes.String(), height/2)
+
+		style := glamour.DefaultStyles["dracula"]
+		style.Document.Margin = func() *uint {
+			var zero uint = 0
+			return &zero
+		}()
+		renderer, err := glamour.NewTermRenderer(glamour.WithStyles(*style), glamour.WithWordWrap(p.width/2-6))
+		if err != nil {
+			panic(err)
 		}
 
-		p.viewPort = viewport.New(p.width, p.height)
-		p.viewPort.SetContent(strings.Join(renderedDiffStrings, "\n"))
+		description, err := renderer.Render(p.currentPr.Description)
+		if err != nil {
+			panic(err)
+		}
+		p.description = p.createViewPort(description, height)
+
 		p.ready = true
 	}
 
@@ -118,10 +132,30 @@ func (p *PullRequestReview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = make([]tea.Cmd, 0)
 	)
 
-	p.viewPort, cmd = p.viewPort.Update(msg)
+	p.diff, cmd = p.diff.Update(msg)
+	cmds = append(cmds, cmd)
+	p.description, cmd = p.description.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return p, tea.Batch(cmds...)
+}
+
+func (p *PullRequestReview) createViewPort(input string, height int) viewport.Model {
+	diffStrings := strings.Split(input, "\n")
+	renderedDiffStrings := make([]string, 0, len(diffStrings))
+	for _, diffString := range diffStrings {
+		// if len(diffString) > p.width/2-8 {
+		// 	renderedDiffStrings = append(renderedDiffStrings, "\033[0m"+diffString[0:p.width/2-8]+"\033[0m")
+		// } else {
+		renderedDiffStrings = append(renderedDiffStrings, "\033[0m"+diffString+"\033[0m")
+		// }
+
+	}
+
+	viewPort := viewport.New(p.width/2-6, height)
+	viewPort.SetContent(strings.Join(renderedDiffStrings, "\n"))
+
+	return viewPort
 }
 
 var (
@@ -132,38 +166,41 @@ var (
 	titleBox = contentBox.Copy().Bold(true)
 )
 
-func (p *PullRequestReview) View() string {
-	var body string
+func (p *PullRequestReview) renderTitle() (string, int) {
+	title := titleBox.Width(p.width-1).Render(p.currentPr.Title) + "\n"
+	titleHeight := lipgloss.Height(title)
+
+	return title, titleHeight
+}
+
+func (p *PullRequestReview) renderHelp() (string, int) {
 	help := p.help.View(p.keyMap)
 	helpHeight := lipgloss.Height(help)
 
+	return help, helpHeight
+}
+
+func (p *PullRequestReview) getContentHeight() int {
+	_, helpHeight := p.renderHelp()
+	_, titleHeight := p.renderTitle()
+
+	return p.height - (helpHeight + titleHeight) - 2
+}
+
+func (p *PullRequestReview) View() string {
+	var body string
+	help, _ := p.renderHelp()
+
 	if p.currentPr != nil {
 		pr := p.currentPr
-		title := pr.Title
 
-		style := glamour.DefaultStyles["dracula"]
-		style.Document.Margin = func() *uint {
-			var zero uint = 0
-			return &zero
-		}()
-		renderer, err := glamour.NewTermRenderer(glamour.WithStyles(*style), glamour.WithWordWrap(p.width/2-2))
-		if err != nil {
-			panic(err)
-		}
-
-		description, err := renderer.Render(pr.Description)
-		if err != nil {
-			panic(err)
-		}
+		title, _ := p.renderTitle()
 
 		comments := strings.Join(pr.Comments, "\n\n")
 		statusChecks := strings.Join(pr.StatusChecks, "\n\n")
-		diff := p.viewPort.View()
+		diff := p.diff.View()
 
-		title = titleBox.Width(p.width-1).Render(title) + "\n"
-		titleHeight := lipgloss.Height(title)
-
-		remainingHeight := p.height - (titleHeight + helpHeight)
+		remainingHeight := p.getContentHeight()
 
 		left := lipgloss.PlaceHorizontal(
 			p.width/2, lipgloss.Left,
@@ -171,10 +208,10 @@ func (p *PullRequestReview) View() string {
 				Copy().
 				Width(p.width/2).
 				Height(remainingHeight-2).
-				Render(description),
+				Render(p.description.View()),
 		)
 		rightTop := lipgloss.PlaceVertical(
-			remainingHeight/2, lipgloss.Top,
+			remainingHeight/2-1, lipgloss.Top,
 			contentBox.Copy().Width(p.width/2-2).Render(
 				lipgloss.JoinVertical(
 					lipgloss.Top,
@@ -188,17 +225,18 @@ func (p *PullRequestReview) View() string {
 						Render(statusChecks)),
 			),
 		)
+
 		rightBottom := lipgloss.PlaceVertical(
-			remainingHeight/2, lipgloss.Top,
+			remainingHeight-lipgloss.Height(rightTop), lipgloss.Top,
 			borderBox.
 				Copy().
 				Width(p.width/2-4).
-				Height(remainingHeight/2-1).
-				MaxHeight(remainingHeight/2-1).
+				Height(remainingHeight-lipgloss.Height(rightTop)).
+				//MaxHeight(remainingHeight/2-1).
 				Render(diff),
 		)
 		right := lipgloss.PlaceHorizontal(
-			p.width/2-2, lipgloss.Left,
+			p.width/2, lipgloss.Left,
 			lipgloss.JoinVertical(lipgloss.Top,
 				rightTop, rightBottom),
 		)

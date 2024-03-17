@@ -2,6 +2,8 @@ module shuttle-extensions-template
 
 go 1.22
 
+toolchain go1.22.0
+
 require (
 	github.com/alecthomas/chroma v0.10.0
 	github.com/charmbracelet/bubbles v0.18.0

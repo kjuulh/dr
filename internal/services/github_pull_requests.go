@@ -2,6 +2,138 @@ package services
 
 import "github.com/google/uuid"
 
+const description = `
+Here's a Markdown example with about 10k characters. It covers various Markdown elements like headers, paragraphs, lists, code, blockquotes, and more.
+
+# Comprehensive Markdown Guide
+
+Welcome to this comprehensive Markdown guide! Markdown is a lightweight markup language with plain-text formatting syntax. Its design allows it to be converted to many output formats, but it's most commonly used to generate HTML. Below is a detailed demonstration of various Markdown features.
+
+## Table of Contents
+
+1. [Headers](#headers)
+2. [Emphasis](#emphasis)
+3. [Lists](#lists)
+4. [Links and Images](#links-and-images)
+5. [Code](#code)
+6. [Tables](#tables)
+7. [Blockquotes](#blockquotes)
+8. [Horizontal Rules](#horizontal-rules)
+9. [Line Breaks](#line-breaks)
+10. [Escaping Characters](#escaping-characters)
+
+## Headers
+
+Headers are created using the # symbol before your header text. The number of # symbols used will determine the size of the header.
+
+# Header 1
+## Header 2
+### Header 3
+#### Header 4
+##### Header 5
+###### Header 6
+
+## Emphasis
+
+You can emphasize text with bold or italic styles.
+
+*Italic text with asterisks*
+
+_Italic text with underscores_
+
+**Bold text with asterisks**
+
+__Bold text with underscores__
+
+## Lists
+
+Markdown supports ordered (numbered) and unordered (bulleted) lists.
+
+### Ordered List
+
+1. First item
+2. Second item
+3. Third item
+
+### Unordered List
+
+- Bulleted item
+- Another bulleted item
+- Yet another item
+
+## Links and Images
+
+Links and images are a vital part of any document.
+
+### Links
+
+[OpenAI](https://www.openai.com)
+
+### Images
+
+![Alt text for the image](https://example.com/image.jpg)
+
+## Code
+
+You can include inline code, like var example = true;, or code blocks.
+
+function exampleFunction() {
+  console.log("Hello, world!");
+}
+
+## Tables
+
+Create tables by separating text with pipes  |  and dashes  - .
+
+| Header 1 | Header 2 | Header 3 |
+|----------|----------|----------|
+| Row 1    | Data     | Data     |
+| Row 2    | Data     | Data     |
+
+## Blockquotes
+
+Blockquotes are useful for quoting blocks of text.
+
+> This is a blockquote.
+> 
+> This is the second paragraph in the blockquote.
+
+## Horizontal Rules
+
+A horizontal rule is a line that goes across the middle of the page.
+
+---
+
+Hyphens
+
+***
+
+Asterisks
+
+___
+
+Underscores
+
+## Line Breaks
+
+To create a line break, end a line with two or more spaces before hitting Return.
+
+This line will  
+break here.
+
+## Escaping Characters
+
+Use the backslash to escape Markdown characters.
+
+\*This text is not italicized\*
+
+---
+
+*End of the Markdown guide*
+
+This template should be close to 10k characters, incorporating a variety of Markdown features. Adjust the content if you need more precise control over the character count.		
+`
+
 const diff = `diff --git a/go.mod b/go.mod
 index 4532416..780b81e 100644
 --- a/go.mod
@@ -211,7 +343,7 @@ func newBogusPr() GitHubPullRequest {
 
 	return GitHubPullRequest{
 		Title:       "some pr" + uuid,
-		Description: "# some long text\n- [ ] something\n - [x] something else\n\n<div>Bogus</div>\n\n" + uuid,
+		Description: description,
 		Comments: []string{
 			"some comment" + uuid,
 			"some comment" + uuid,
