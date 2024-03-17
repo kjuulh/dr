@@ -293,7 +293,12 @@ func (p *PullRequestReview) View() string {
 		body = "loading..."
 	}
 
-	notificationBox := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Width(30).Render("something\nsomething\nsomething")
+	notificationBox := lipgloss.NewStyle().
+		PaddingLeft(1).
+		PaddingRight(1).
+		Border(lipgloss.NormalBorder()).
+		Width(30).
+		Render("something\nsomething\nsomething")
 
 	content := docStyle.Render(
 		lipgloss.JoinVertical(
