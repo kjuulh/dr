@@ -19,15 +19,17 @@ const PullRequestReviewPage = "pull_request_review"
 type reviewKeyMap struct {
 	Skip    key.Binding
 	TabNext key.Binding
+	Help    key.Binding
 }
 
 func (r reviewKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{
 			r.Skip,
+			r.TabNext,
 		},
 		{
-			r.TabNext,
+			r.Help,
 		},
 	}
 }
@@ -35,6 +37,7 @@ func (r reviewKeyMap) FullHelp() [][]key.Binding {
 func (r reviewKeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
 		r.Skip,
+		r.Help,
 	}
 }
 
@@ -47,6 +50,10 @@ func newReviewKeyMap() reviewKeyMap {
 		TabNext: key.NewBinding(
 			key.WithKeys("tab"),
 			key.WithHelp("tab", "switch to next interactive panel"),
+		),
+		Help: key.NewBinding(
+			key.WithKeys("?"),
+			key.WithHelp("?", "toggle help"),
 		),
 	}
 }
@@ -102,10 +109,17 @@ func (p *PullRequestReview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, p.keyMap.TabNext):
 			p.focus += 1
 			p.focus %= 2
+		case key.Matches(msg, p.keyMap.Help):
+			p.help.ShowAll = !p.help.ShowAll
+
+			// TODO: Don't refresh all the state only set height/width
+			p.ready = false
 		}
 	case tea.WindowSizeMsg:
 		h, v := docStyle.GetFrameSize()
 		p.SetSize(msg.Width-h, msg.Height-v)
+
+		p.ready = false
 
 	}
 
