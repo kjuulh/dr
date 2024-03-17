@@ -17,13 +17,17 @@ import (
 const PullRequestReviewPage = "pull_request_review"
 
 type reviewKeyMap struct {
-	Skip key.Binding
+	Skip    key.Binding
+	TabNext key.Binding
 }
 
 func (r reviewKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{
 			r.Skip,
+		},
+		{
+			r.TabNext,
 		},
 	}
 }
@@ -39,6 +43,10 @@ func newReviewKeyMap() reviewKeyMap {
 		Skip: key.NewBinding(
 			key.WithKeys("s"),
 			key.WithHelp("s", "skip the current pr"),
+		),
+		TabNext: key.NewBinding(
+			key.WithKeys("tab"),
+			key.WithHelp("tab", "switch to next interactive panel"),
 		),
 	}
 }
@@ -91,6 +99,9 @@ func (p *PullRequestReview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			return p, nil
+		case key.Matches(msg, p.keyMap.TabNext):
+			p.focus += 1
+			p.focus %= 2
 		}
 	case tea.WindowSizeMsg:
 		h, v := docStyle.GetFrameSize()
@@ -132,10 +143,14 @@ func (p *PullRequestReview) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = make([]tea.Cmd, 0)
 	)
 
-	p.diff, cmd = p.diff.Update(msg)
-	cmds = append(cmds, cmd)
-	p.description, cmd = p.description.Update(msg)
-	cmds = append(cmds, cmd)
+	if p.focus == 0 {
+		p.description, cmd = p.description.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+	if p.focus == 1 {
+		p.diff, cmd = p.diff.Update(msg)
+		cmds = append(cmds, cmd)
+	}
 
 	return p, tea.Batch(cmds...)
 }
@@ -161,10 +176,21 @@ func (p *PullRequestReview) createViewPort(input string, height int) viewport.Mo
 var (
 	contentBox = lipgloss.NewStyle()
 
-	borderBox = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).PaddingLeft(1)
-
 	titleBox = contentBox.Copy().Bold(true)
 )
+
+func borderBox(focus bool) lipgloss.Style {
+	borderBox := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).PaddingLeft(1)
+
+	if focus {
+		borderBox = borderBox.BorderForeground(lipgloss.Color("#FFFFFF"))
+	} else {
+		borderBox = borderBox.BorderForeground(lipgloss.Color("#AAAAAA"))
+
+	}
+
+	return borderBox
+}
 
 func (p *PullRequestReview) renderTitle() (string, int) {
 	title := titleBox.Width(p.width-1).Render(p.currentPr.Title) + "\n"
@@ -204,7 +230,7 @@ func (p *PullRequestReview) View() string {
 
 		left := lipgloss.PlaceHorizontal(
 			p.width/2, lipgloss.Left,
-			borderBox.
+			borderBox(p.focus == 0).
 				Copy().
 				Width(p.width/2).
 				Height(remainingHeight-2).
@@ -215,11 +241,11 @@ func (p *PullRequestReview) View() string {
 			contentBox.Copy().Width(p.width/2-2).Render(
 				lipgloss.JoinVertical(
 					lipgloss.Top,
-					borderBox.
+					borderBox(false).
 						Copy().
 						Width(p.width/2-4).
 						Render(comments),
-					borderBox.
+					borderBox(false).
 						Copy().
 						Width(p.width/2-4).
 						Render(statusChecks)),
@@ -228,7 +254,7 @@ func (p *PullRequestReview) View() string {
 
 		rightBottom := lipgloss.PlaceVertical(
 			remainingHeight-lipgloss.Height(rightTop), lipgloss.Top,
-			borderBox.
+			borderBox(p.focus == 1).
 				Copy().
 				Width(p.width/2-4).
 				Height(remainingHeight-lipgloss.Height(rightTop)).
@@ -244,7 +270,11 @@ func (p *PullRequestReview) View() string {
 		content := lipgloss.JoinHorizontal(lipgloss.Left, left, right)
 		//contentHeight := lipgloss.Height(content)
 
-		body = lipgloss.JoinVertical(lipgloss.Top, title, contentBox.Copy().Height(remainingHeight).Render(content))
+		body = lipgloss.JoinVertical(
+			lipgloss.Top,
+			title,
+			contentBox.Copy().Height(remainingHeight).Render(content),
+		)
 	} else {
 		body = "loading..."
 	}
